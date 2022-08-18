@@ -1089,7 +1089,7 @@ class Backtest:
         self._strategy = strategy
         self._results: Optional[pd.Series] = None
 
-    def run(self, show_progress: bool = False, **kwargs) -> pd.Series:
+    def run(self, show_progress: bool = False, progress_message: str = None, **kwargs) -> pd.Series:
         """
         Run the backtest. Returns `pd.Series` with results and statistics.
 
@@ -1153,7 +1153,7 @@ class Backtest:
         with np.errstate(invalid='ignore'):
 
             data_iter = range(start, len(self._data))
-            if show_progress: data_iter = track(data_iter, description="Backtesting...")
+            if show_progress: data_iter = track(data_iter, description="Backtesting..." if not progress_message else progress_message)
 
             for i in data_iter:
                 # Prepare data and indicators for `next` call
