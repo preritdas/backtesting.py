@@ -18,7 +18,7 @@ from math import copysign
 from numbers import Number
 from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
 from rich.progress import track  # optional progress bars
-from rich.console import Console
+from rich.console import Console; console = Console()
 from contextlib import nullcontext  # optional status for param combos
 
 import numpy as np
@@ -1089,7 +1089,7 @@ class Backtest:
         self._strategy = strategy
         self._results: Optional[pd.Series] = None
 
-    def run(self, show_progress: bool = False, progress_message: str = "Backtesting...", **kwargs) -> pd.Series:
+    def run(self, show_progress: bool = False, progress_message: str = "Backtesting...", newline: bool = False, **kwargs) -> pd.Series:
         """
         Run the backtest. Returns `pd.Series` with results and statistics.
 
@@ -1153,7 +1153,9 @@ class Backtest:
         with np.errstate(invalid='ignore'):
 
             data_iter = range(start, len(self._data))
-            if show_progress: data_iter = track(data_iter, description=progress_message)
+            if show_progress: 
+                if newline: console.line()
+                data_iter = track(data_iter, description=progress_message)
 
             for i in data_iter:
                 # Prepare data and indicators for `next` call
@@ -1335,7 +1337,7 @@ class Backtest:
                          max_tries if 0 < max_tries <= 1 else
                          max_tries / _grid_size())
 
-            with Console().status("Calculating parameter combinations...") if show_progress else nullcontext():
+            with console.status("Calculating parameter combinations...") if show_progress else nullcontext():
                 param_combos = [dict(params)  # back to dict so it pickles
                                 for params in (AttrDict(params)
                                             for params in product(*(zip(repeat(k), _tuple(v))
@@ -1346,7 +1348,8 @@ class Backtest:
             if not param_combos:
                 raise ValueError('No admissible parameter combinations to test')
 
-            Console().log(f'Running optimization with {len(param_combos):,} configurations.')
+            console.line()
+            console.log(f'Running optimization with {len(param_combos):,} configurations.')
 
             heatmap = pd.Series(np.nan,
                                 name=maximize_key,
@@ -1479,7 +1482,7 @@ class Backtest:
                 warnings.filterwarnings(
                     'ignore', 'The objective has been evaluated at this point before.')
 
-                with Console().status("Optimizing with scikit...") if show_progress else nullcontext():
+                with console.status("Optimizing with scikit...") if show_progress else nullcontext():
                     res = forest_minimize(
                         func=objective_function,
                         dimensions=dimensions,
