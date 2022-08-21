@@ -1346,8 +1346,7 @@ class Backtest:
             if not param_combos:
                 raise ValueError('No admissible parameter combinations to test')
 
-            if len(param_combos) > 300:
-                Console().log(f'Many combinations generated. Searching for best of all {len(param_combos)} configurations.')
+            Console().log(f'Running optimization with {len(param_combos)} configurations.')
 
             heatmap = pd.Series(np.nan,
                                 name=maximize_key,
