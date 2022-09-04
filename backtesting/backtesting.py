@@ -73,7 +73,7 @@ class Strategy(metaclass=ABCMeta):
 
     def I(self,  # noqa: E741, E743
           func: Callable, *args,
-          name=None, plot=True, overlay=None, color=None, scatter=False,
+          name=None, plot=True, overlay=None, color=None, scatter=False, show_progress=False,
           **kwargs) -> np.ndarray:
         """
         Declare indicator. An indicator is just an array of values,
@@ -119,10 +119,11 @@ class Strategy(metaclass=ABCMeta):
             name = name.format(*map(_as_str, args),
                                **dict(zip(kwargs.keys(), map(_as_str, kwargs.values()))))
 
-        try:
-            value = func(*args, **kwargs)
-        except Exception as e:
-            raise RuntimeError(f'Indicator "{name}" errored with exception: {e}')
+        with console.status(f"Calculating the {name} indicator...") if show_progress else nullcontext():
+            try:
+                value = func(*args, **kwargs)
+            except Exception as e:
+                raise RuntimeError(f'Indicator "{name}" errored with exception: {e}')
 
         if isinstance(value, pd.DataFrame):
             value = value.values.T
