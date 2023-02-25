@@ -83,7 +83,7 @@ class Strategy(metaclass=ABCMeta):
           name=None, plot=True, overlay=None, color=None, scatter=False, show_progress=False,
           **kwargs) -> np.ndarray:
         """
-        Declare indicator. An indicator is just an array of values,
+        Declare an indicator. An indicator is just an array of values,
         but one that is revealed gradually in
         `backtesting.backtesting.Strategy.next` much like
         `backtesting.backtesting.Strategy.data` is.
@@ -137,7 +137,7 @@ class Strategy(metaclass=ABCMeta):
 
         if value is not None:
             value = try_(lambda: np.asarray(value, order='C'), None)
-        is_arraylike = value is not None
+        is_arraylike = bool(value is not None and value.shape)
 
         # Optionally flip the array if the user returned e.g. `df.values`
         if is_arraylike and np.argmax(value.shape) == 0:
@@ -146,7 +146,7 @@ class Strategy(metaclass=ABCMeta):
         if not is_arraylike or not 1 <= value.ndim <= 2 or value.shape[-1] != len(self._data.Close):
             raise ValueError(
                 'Indicators must return (optionally a tuple of) numpy.arrays of same '
-                f'length as `data` (data shape: {self._data.Close.shape}; indicator "{name}"'
+                f'length as `data` (data shape: {self._data.Close.shape}; indicator "{name}" '
                 f'shape: {getattr(value, "shape" , "")}, returned value: {value})')
 
         if plot and overlay is None and np.issubdtype(value.dtype, np.number):
@@ -1180,6 +1180,13 @@ class Backtest:
             _equity_curve                           Eq...
             _trades                       Size  EntryB...
             dtype: object
+
+        .. warning::
+            You may obtain different results for different strategy parameters.
+            E.g. if you use 50- and 200-bar SMA, the trading simulation will
+            begin on bar 201. The actual length of delay is equal to the lookback
+            period of the `Strategy.I` indicator which lags the most.
+            Obviously, this can affect results.
         """
         data = _Data(self._data.copy(deep=False))
         broker: _Broker = self._broker(data=data)
@@ -1585,7 +1592,7 @@ class Backtest:
 
     def plot(self, *, results: pd.Series = None, filename=None, plot_width=None,
              plot_equity=True, plot_return=False, plot_pl=True,
-             plot_volume=True, plot_drawdown=False,
+             plot_volume=True, plot_drawdown=False, plot_trades=True,
              smooth_equity=False, relative_equity=True,
              superimpose: Union[bool, str] = True,
              resample=True, reverse_indicators=False,
@@ -1623,6 +1630,9 @@ class Backtest:
 
         If `plot_drawdown` is `True`, the resulting plot will contain
         a separate drawdown graph section.
+
+        If `plot_trades` is `True`, the stretches between trade entries
+        and trade exits are marked by hash-marked tractor beams.
 
         If `smooth_equity` is `True`, the equity graph will be
         interpolated between fixed points at trade closing times,
@@ -1682,6 +1692,7 @@ class Backtest:
             plot_pl=plot_pl,
             plot_volume=plot_volume,
             plot_drawdown=plot_drawdown,
+            plot_trades=plot_trades,
             smooth_equity=smooth_equity,
             relative_equity=relative_equity,
             superimpose=superimpose,
